@@ -12,5 +12,7 @@ COPY . .
 
 RUN pip install uv && uv sync --no-dev
 
+ENV PATH="/app/.venv/bin:$PATH"
+
 EXPOSE 5100
 CMD ["uv", "run", "python", "app.py"]
