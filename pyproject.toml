@@ -9,5 +9,5 @@ dependencies = [
     "pytesseract",
     "Pillow",
     "mammoth",
-    "markitdown",
+    "markitdown[all]",
 ]
