@@ -10,7 +10,7 @@ import time
 import urllib.request
 import uuid
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, Response
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 _IS_WIN         = sys.platform == "win32"
@@ -39,6 +39,25 @@ _CP1252 = {
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
+
+
+def _check_auth(req) -> bool:
+    auth = req.headers.get("Authorization", "")
+    if not auth.startswith("Basic "):
+        return False
+    try:
+        decoded = base64.b64decode(auth[6:]).decode("utf-8")
+        user, pwd = decoded.split(":", 1)
+        return user == os.environ.get("BASIC_AUTH_USER", "") and pwd == os.environ.get("BASIC_AUTH_PASS", "")
+    except Exception:
+        return False
+
+
+@app.before_request
+def require_auth():
+    if not _check_auth(request):
+        return Response("Authentication required", 401,
+                        {"WWW-Authenticate": 'Basic realm="MarkItDown UI"'})
 
 
 # ── Text helpers ───────────────────────────────────────────────────────────────
