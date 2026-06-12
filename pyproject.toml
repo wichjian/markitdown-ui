@@ -1,0 +1,13 @@
+[project]
+name = "markitdown-ui"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "flask",
+    "pymupdf",
+    "pymupdf4llm",
+    "pytesseract",
+    "Pillow",
+    "mammoth",
+    "markitdown",
+]

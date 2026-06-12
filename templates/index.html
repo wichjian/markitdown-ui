@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarkItDown — File to Markdown Converter</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080c14;
+      --surface:   #0e1420;
+      --surface2:  #111827;
+      --border:    #1c2535;
+      --border-hi: #2a3a55;
+      --accent:    #00c8ff;
+      --accent2:   #0072ff;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --success:   #00e5a0;
+      --error:     #ff4d6d;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px 60px;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,200,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 40px; }
+    .logo { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    h1 {
+      font-size: 26px; font-weight: 600;
+      background: linear-gradient(90deg, var(--accent), #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    /* ── Card ── */
+    .card {
+      width: 100%; max-width: 640px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .tab {
+      flex: 1; padding: 14px; text-align: center;
+      font-size: 13px; font-weight: 500; color: var(--muted);
+      cursor: pointer; transition: all .2s; user-select: none; letter-spacing: .4px;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); background: rgba(0,200,255,.05); border-bottom: 2px solid var(--accent); }
+
+    /* ── Tab panels ── */
+    .panel { display: none; padding: 24px; }
+    .panel.active { display: block; }
+
+    /* ── Drop zone ── */
+    .dropzone {
+      border: 2px dashed var(--border-hi); border-radius: 12px;
+      padding: 40px 24px; text-align: center; cursor: pointer;
+      transition: all .25s; position: relative;
+    }
+    .dropzone:hover, .dropzone.over { border-color: var(--accent); background: rgba(0,200,255,.04); }
+    .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .dz-icon { font-size: 36px; margin-bottom: 12px; }
+    .dz-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+    .dz-sub { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .dz-file-name { margin-top: 14px; font-size: 13px; font-weight: 500; color: var(--accent); display: none; }
+
+    /* ── URL input ── */
+    .url-wrap { position: relative; }
+    .url-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; color: var(--muted); pointer-events: none;
+    }
+    input[type=text], input[type=url] {
+      width: 100%; padding: 13px 14px 13px 42px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 14px; font-family: inherit; outline: none; transition: border-color .2s;
+    }
+    input[type=text]:focus, input[type=url]:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,200,255,.08);
+    }
+    input::placeholder { color: var(--muted); }
+
+    /* ── Section label (URL panel) ── */
+    .section-label {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      letter-spacing: .8px; text-transform: uppercase; margin-bottom: 8px; margin-top: 20px;
+    }
+
+    /* ── Convert / Download button ── */
+    .btn-convert {
+      width: 100%; margin-top: 22px; padding: 14px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      border: none; border-radius: 10px; color: #fff;
+      font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: background .3s, opacity .2s, transform .1s; letter-spacing: .3px;
+    }
+    .btn-convert:hover { opacity: .88; }
+    .btn-convert:active { transform: scale(.98); }
+    .btn-convert:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-convert.download { background: linear-gradient(135deg, #00965a, var(--success)); }
+
+    /* ── Status area ── */
+    .status-box {
+      margin: 20px 24px; padding: 16px 18px; border-radius: 12px;
+      font-size: 13px; display: none; align-items: flex-start; gap: 12px;
+      animation: fadeIn .3s ease;
+    }
+    .status-box.show { display: flex; }
+    .status-box.success { background: rgba(0,229,160,.07); border: 1px solid rgba(0,229,160,.25); }
+    .status-box.error   { background: rgba(255,77,109,.07); border: 1px solid rgba(255,77,109,.25); }
+    .status-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+    .status-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .status-box.success .status-title { color: var(--success); }
+    .status-box.error   .status-title { color: var(--error); }
+    .status-path { font-size: 11px; color: var(--muted); font-family: 'Consolas', monospace; word-break: break-all; margin-top: 4px; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin .6s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+
+    /* ── Formats ── */
+    .divider { height: 1px; background: var(--border); margin: 0 0 16px; }
+    .formats-label { padding: 14px 24px 10px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
+    .formats { padding: 0 24px 20px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .fmt-tag { padding: 3px 9px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 20px; font-size: 11px; color: var(--muted); font-family: 'Consolas', monospace; }
+
+    /* ── Card outer wrapper (beam lives here) ── */
+    .card-outer { position: relative; width: 100%; max-width: 640px; }
+
+    /* ── Progress beam SVG ── */
+    .beam-svg {
+      position: absolute; top: -5px; left: -5px;
+      pointer-events: none; z-index: 10; overflow: visible;
+      opacity: 1; transition: opacity .7s ease;
+    }
+    .beam-svg.hidden { display: none; }
+    .beam-path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+    @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ MAIN UI ══════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">✦</div>
+    <h1>MarkItDown</h1>
+  </div>
+  <p class="subtitle">แปลงไฟล์ทุกประเภทเป็น Markdown ด้วย AI</p>
+</header>
+
+<div class="card-outer" id="card-outer">
+
+<!-- ── Beam SVG (positioned absolute outside card) ── -->
+<svg class="beam-svg hidden" id="beam-svg" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Pure wide blur = ambient halo -->
+    <filter id="bf0" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="16" in="SourceGraphic"/>
+    </filter>
+    <!-- Medium blur = outer glow -->
+    <filter id="bf1" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="7" in="SourceGraphic"/>
+    </filter>
+    <!-- Tight blur + merge = sharp glow core -->
+    <filter id="bf2" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.5" in="SourceGraphic" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Micro blur + merge = crisp bright core -->
+    <filter id="bf3" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1" in="SourceGraphic" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Layer 0: deep indigo ambient halo (longest tail) -->
+  <path id="bp0" class="beam-path" stroke="#1a2aff" stroke-width="32" opacity="0.14" filter="url(#bf0)"/>
+  <!-- Layer 1: cyan outer glow -->
+  <path id="bp1" class="beam-path" stroke="#006eff" stroke-width="14" opacity="0.32" filter="url(#bf1)"/>
+  <!-- Layer 2: bright cyan mid glow -->
+  <path id="bp2" class="beam-path" stroke="#00bfff" stroke-width="5" opacity="0.70" filter="url(#bf2)"/>
+  <!-- Layer 3: near-white inner core -->
+  <path id="bp3" class="beam-path" stroke="#b0f0ff" stroke-width="2.5" opacity="0.90" filter="url(#bf3)"/>
+  <!-- Layer 4: pure white leading edge (no blur, sharpest) -->
+  <path id="bp4" class="beam-path" stroke="#ffffff" stroke-width="1.5" opacity="1"/>
+</svg>
+
+<div class="card">
+  <div class="tabs">
+    <div class="tab active" data-tab="file">📄&nbsp; อัพโหลดไฟล์</div>
+    <div class="tab" data-tab="url">🔗&nbsp; วาง URL</div>
+  </div>
+
+  <!-- File panel -->
+  <div class="panel active" id="panel-file">
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="file-input" accept="*/*" />
+      <div class="dz-icon">⬆</div>
+      <div class="dz-title">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก</div>
+      <div class="dz-sub">PDF · DOCX · XLSX · PPTX · JPG · PNG · MP3 · HTML · CSV · JSON · XML · ZIP</div>
+      <div class="dz-file-name" id="dz-file-name">—</div>
+    </div>
+
+    <button class="btn-convert" id="btn-file" onclick="convertFile()">แปลงเป็น Markdown</button>
+  </div>
+
+  <!-- URL panel -->
+  <div class="panel" id="panel-url">
+    <div class="section-label">URL เว็บไซต์หรือลิงก์ไฟล์</div>
+    <div class="url-wrap">
+      <span class="url-icon">🌐</span>
+      <input type="url" id="url-input"
+             placeholder="https://example.com/page หรือ https://example.com/file.pdf" />
+    </div>
+
+    <button class="btn-convert" id="btn-url" onclick="convertUrl()">แปลงเป็น Markdown</button>
+  </div>
+
+  <!-- Status -->
+  <div class="status-box" id="status-box">
+    <div class="status-icon" id="status-icon"></div>
+    <div>
+      <div class="status-title" id="status-title"></div>
+      <div id="status-msg"></div>
+      <div class="status-path" id="status-path"></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="formats-label">รองรับไฟล์</div>
+  <div class="formats">
+    <span class="fmt-tag">.pdf</span>
+    <span class="fmt-tag">.docx</span>
+    <span class="fmt-tag">.xlsx</span>
+    <span class="fmt-tag">.pptx</span>
+    <span class="fmt-tag">.jpg/.png</span>
+    <span class="fmt-tag">.mp3/.wav</span>
+    <span class="fmt-tag">.html</span>
+    <span class="fmt-tag">.csv</span>
+    <span class="fmt-tag">.json</span>
+    <span class="fmt-tag">.xml</span>
+    <span class="fmt-tag">.zip</span>
+    <span class="fmt-tag">URL</span>
+  </div>
+</div><!-- /card -->
+</div><!-- /card-outer -->
+
+<script>
+  // ══════════════════ TABS ══════════════════
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      hideStatus();
+    });
+  });
+
+  // ══════════════════ DRAG & DROP ══════════════════
+  const dz = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file-input');
+  const dzName = document.getElementById('dz-file-name');
+
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; showFileName(e.dataTransfer.files[0].name); }
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      showFileName(fileInput.files[0].name);
+      resetBtn(document.getElementById('btn-file'));
+      hideStatus();
+    }
+  });
+  function showFileName(name) { dzName.textContent = '✓  ' + name; dzName.style.display = 'block'; }
+
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ══════════════════ CONVERT ══════════════════
+  async function convertFile() {
+    const btn = document.getElementById('btn-file');
+    if (btn.dataset.downloadUrl) { triggerDownload(btn); return; }
+    if (!fileInput.files.length) {
+      showStatus('error', '⚠', 'ยังไม่ได้เลือกไฟล์', 'กรุณาเลือกหรือลากไฟล์มาวาง'); return;
+    }
+    setLoading(btn, true); hideStatus(); beamStart();
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    let ok = false;
+    try {
+      const res = await fetch('/convert', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success) {
+        ok = true;
+        showStatus('success', '✓', 'เสร็จสมบูรณ์',
+          (data.method ? data.method + ' · ' : '') + data.filename);
+        setDownloadBtn(btn, data.download_url, data.filename);
+      } else {
+        showStatus('error', '✕', 'เกิดข้อผิดพลาด', data.error);
+      }
+    } catch { showStatus('error', '✕', 'เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อ server ได้'); }
+    finally { beamDone(ok); if (!btn.dataset.downloadUrl) setLoading(btn, false); }
+  }
+
+  async function convertUrl() {
+    const btn = document.getElementById('btn-url');
+    if (btn.dataset.downloadUrl) { triggerDownload(btn); return; }
+    const url = document.getElementById('url-input').value.trim();
+    if (!url) { showStatus('error', '⚠', 'ยังไม่ได้ระบุ URL', 'กรุณาพิมพ์หรือวาง URL'); return; }
+    setLoading(btn, true); hideStatus(); beamStart();
+    const fd = new FormData();
+    fd.append('url', url);
+    let ok = false;
+    try {
+      const res = await fetch('/convert', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success) {
+        ok = true;
+        showStatus('success', '✓', 'เสร็จสมบูรณ์',
+          (data.method ? data.method + ' · ' : '') + data.filename);
+        setDownloadBtn(btn, data.download_url, data.filename);
+      } else {
+        showStatus('error', '✕', 'เกิดข้อผิดพลาด', data.error);
+      }
+    } catch { showStatus('error', '✕', 'เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อ server ได้'); }
+    finally { beamDone(ok); if (!btn.dataset.downloadUrl) setLoading(btn, false); }
+  }
+
+  // ══════════════════ DOWNLOAD MODE ══════════════════
+  function setDownloadBtn(btn, url, filename) {
+    btn.disabled = false;
+    btn.dataset.downloadUrl = url;
+    btn.classList.add('download');
+    btn.innerHTML = '⬇&nbsp; ดาวน์โหลด ' + escHtml(filename);
+  }
+
+  function triggerDownload(btn) {
+    const a = document.createElement('a');
+    a.href = btn.dataset.downloadUrl;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => resetBtn(btn), 800);
+  }
+
+  function resetBtn(btn) {
+    delete btn.dataset.downloadUrl;
+    btn.classList.remove('download');
+    btn.disabled = false;
+    btn.innerHTML = 'แปลงเป็น Markdown';
+  }
+
+  // ══════════════════ HELPERS ══════════════════
+  function setLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.innerHTML = loading ? '<span class="spinner"></span>กำลังแปลง...' : 'แปลงเป็น Markdown';
+  }
+  function showStatus(type, icon, title, msg) {
+    const box = document.getElementById('status-box');
+    box.className = 'status-box show ' + type;
+    document.getElementById('status-icon').textContent = icon;
+    document.getElementById('status-title').textContent = title;
+    document.getElementById('status-msg').textContent = msg || '';
+    document.getElementById('status-path').textContent = '';
+  }
+  function hideStatus() { document.getElementById('status-box').className = 'status-box'; }
+
+  // ══════════════════ PROGRESS BEAM ══════════════════
+  // 5 SVG layers: indigo halo → cyan glow → bright core → white edge
+  // ความเร็วคงที่: elapsed / estimated_duration (linear ล้วน ไม่มี easing)
+  // ประมาณ duration จาก localStorage history ของการแปลงครั้งก่อน
+  const _BL = [
+    { id: 'bp0', tail: 420 },
+    { id: 'bp1', tail: 240 },
+    { id: 'bp2', tail: 130 },
+    { id: 'bp3', tail: 72  },
+    { id: 'bp4', tail: 22  },
+  ];
+  let _bP = 0;
+  let _bPerim = 0;
+  let _bRaf = null;
+  let _bT0 = 0;          // timestamp เริ่มแปลง (ms)
+  let _bEst = 25000;     // duration ประมาณ (ms), อัปเดตจาก history
+
+  const _BKEY = 'midu_conv_ms';
+
+  function _bHistLoad() {
+    try { return JSON.parse(localStorage.getItem(_BKEY) || '[]'); } catch { return []; }
+  }
+  function _bHistSave(ms) {
+    const h = _bHistLoad(); h.push(ms);
+    if (h.length > 6) h.shift();
+    try { localStorage.setItem(_BKEY, JSON.stringify(h)); } catch {}
+  }
+  function _bHistEst() {
+    const h = _bHistLoad();
+    if (!h.length) return 25000;
+    const avg = h.reduce((a, b) => a + b, 0) / h.length;
+    return avg * 1.12; // buffer 12% เพื่อไม่ให้ beam หยุดรอ server บ่อย
+  }
+
+  function _beamRoundedRect(w, h, r) {
+    return `M${r},0 H${w-r} A${r},${r},0,0,1,${w},${r} V${h-r} A${r},${r},0,0,1,${w-r},${h} H${r} A${r},${r},0,0,1,0,${h-r} V${r} A${r},${r},0,0,1,${r},0 Z`;
+  }
+
+  function _beamInit() {
+    const card = document.querySelector('.card');
+    const svg  = document.getElementById('beam-svg');
+    const w = card.offsetWidth  + 10;
+    const h = card.offsetHeight + 10;
+    svg.setAttribute('width',  w);
+    svg.setAttribute('height', h);
+    const d = _beamRoundedRect(w, h, 21);
+    document.querySelectorAll('.beam-path').forEach(p => p.setAttribute('d', d));
+    _bPerim = document.getElementById('bp4').getTotalLength();
+  }
+
+  function _beamDraw() {
+    if (!_bPerim) return;
+    const pos = _bP * _bPerim;
+    _BL.forEach(l => {
+      const el  = document.getElementById(l.id);
+      const len = Math.min(l.tail, pos);
+      el.setAttribute('stroke-dasharray',  `${len} ${_bPerim + 20}`);
+      el.setAttribute('stroke-dashoffset', -(pos - len));
+    });
+  }
+
+  function beamStart() {
+    _beamInit();
+    _bP = 0;
+    _bT0 = performance.now();
+    _bEst = _bHistEst();
+    const svg = document.getElementById('beam-svg');
+    svg.style.opacity = '1';
+    svg.classList.remove('hidden');
+    cancelAnimationFrame(_bRaf);
+    function tick(ts) {
+      // Linear ล้วน: pos = elapsed / estimated — ความเร็วคงที่ตลอด
+      _bP = Math.min(0.88, (ts - _bT0) / _bEst);
+      _beamDraw();
+      if (_bP < 0.88) _bRaf = requestAnimationFrame(tick);
+    }
+    _bRaf = requestAnimationFrame(tick);
+  }
+
+  function beamDone(success) {
+    cancelAnimationFrame(_bRaf);
+    _bHistSave(performance.now() - _bT0); // บันทึก duration จริงสำหรับครั้งต่อไป
+    function fill() {
+      _bP = Math.min(1.0, _bP + 0.018);
+      _beamDraw();
+      if (_bP < 1.0) { _bRaf = requestAnimationFrame(fill); return; }
+      const svg = document.getElementById('beam-svg');
+      if (success) {
+        svg.style.transition = 'none';
+        svg.style.filter = 'brightness(2.2) saturate(1.4)';
+        setTimeout(() => {
+          svg.style.filter = '';
+          svg.style.transition = 'opacity .8s ease, filter .3s ease';
+          svg.style.opacity = '0';
+          setTimeout(() => {
+            svg.classList.add('hidden');
+            svg.style.opacity  = '1';
+            svg.style.transition = '';
+          }, 820);
+        }, 220);
+      } else {
+        svg.style.transition = 'opacity .5s ease';
+        svg.style.opacity = '0';
+        setTimeout(() => {
+          svg.classList.add('hidden');
+          svg.style.opacity = '1';
+          svg.style.transition = '';
+        }, 520);
+      }
+    }
+    _bRaf = requestAnimationFrame(fill);
+  }
+</script>
+</body>
+</html>
